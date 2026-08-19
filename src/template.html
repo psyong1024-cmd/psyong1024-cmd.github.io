@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>운반비 계산 프로그램</title>
+<style>
+  :root{
+    --blue:#2563eb; --blue-dark:#1d4ed8; --bg:#f4f6fb; --card:#ffffff;
+    --text:#1f2937; --muted:#6b7280; --border:#e5e7eb; --green:#059669; --red:#dc2626;
+    --amber:#d97706;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;background:var(--bg);color:var(--text);}
+  header{background:var(--blue);color:#fff;padding:18px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  header h1{margin:0;font-size:18px;font-weight:700;}
+  header p{margin:4px 0 0;font-size:12px;opacity:.85;}
+  .wrap{max-width:720px;margin:0 auto;padding:14px;}
+  .card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);}
+  .card h2{font-size:15px;margin:0 0 12px;color:var(--blue-dark);display:flex;align-items:center;gap:6px;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:12px 0 6px;}
+  label:first-of-type{margin-top:0;}
+  select, input[type=number], input[type=text]{
+    width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;
+    font-size:15px;background:#fff;color:var(--text);
+  }
+  select:focus, input:focus{outline:none;border-color:var(--blue);}
+  .radio-row{display:flex;gap:8px;}
+  .radio-row button{
+    flex:1;padding:11px 6px;border-radius:10px;border:1.5px solid var(--border);background:#fff;
+    font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;
+  }
+  .radio-row button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .hint.warn{color:var(--amber);}
+  .search-box{position:relative;}
+  .search-results{
+    position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--border);
+    border-radius:10px;max-height:260px;overflow-y:auto;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;
+  }
+  .search-results.show{display:block;}
+  .search-results div{padding:10px 12px;font-size:14px;cursor:pointer;border-bottom:1px solid #f1f1f1;}
+  .search-results div:last-child{border-bottom:none;}
+  .search-results div:hover, .search-results div.hl{background:#eff4ff;}
+  .search-results .grp{font-size:11px;color:var(--muted);}
+  .selected-site{margin-top:8px;padding:9px 12px;background:#eff6ff;border-radius:10px;font-size:13.5px;color:var(--blue-dark);font-weight:600;display:none;}
+  .selected-site.show{display:block;}
+  .regua-box{display:none;border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
+  .regua-box.show{display:block;}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+  .toggle-row label{margin:0;}
+  .switch{position:relative;width:46px;height:26px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:26px;transition:.2s;}
+  .slider:before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  input:checked + .slider{background:var(--blue);}
+  input:checked + .slider:before{transform:translateX(20px);}
+  .btn-primary{
+    width:100%;padding:15px;border:none;border-radius:12px;background:var(--blue);color:#fff;
+    font-size:16px;font-weight:700;cursor:pointer;margin-top:6px;
+  }
+  .btn-primary:active{background:var(--blue-dark);}
+  .btn-primary:disabled{background:#9ca3af;cursor:not-allowed;}
+  .result-card{display:none;}
+  .result-card.show{display:block;}
+  .big-number{font-size:28px;font-weight:800;color:var(--blue-dark);margin:2px 0 0;}
+  .big-number span{font-size:14px;font-weight:600;color:var(--muted);}
+  .sub-number{font-size:13px;color:var(--muted);margin-top:2px;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px;}
+  th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--border);}
+  th:first-child,td:first-child{text-align:left;}
+  th{color:var(--muted);font-weight:600;font-size:12px;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;background:#eff6ff;color:var(--blue-dark);font-size:11px;font-weight:700;}
+  .divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+  .row-between{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;font-size:14px;}
+  .row-between .lbl{color:var(--muted);}
+  .row-between .val{font-weight:700;}
+  .final-box{background:#f0f9f4;border:1.5px solid #bbf7d0;border-radius:12px;padding:14px;margin-top:10px;}
+  .final-box .amount{font-size:24px;font-weight:800;color:var(--green);}
+  .note-box{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#92400e;margin-top:10px;line-height:1.6;}
+  .remainder-select{margin-top:8px;}
+  footer{text-align:center;font-size:11px;color:#9ca3af;padding:20px 0 30px;}
+  .disabled-overlay{opacity:.45;pointer-events:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🚚 운반비 계산 프로그램</h1>
+  <p>제품 규격 · 물량 · 현장을 입력하면 최적 운반 대수와 단가를 계산합니다</p>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>① 제품 선택</h2>
+    <label>제품군</label>
+    <div class="radio-row">
+      <button type="button" id="tabBlock" class="active" onclick="switchTab('block')">보도블럭 / 잔디 등 (㎡)</button>
+      <button type="button" id="tabConi" onclick="switchTab('coni')">코니스톤 (EA)</button>
+    </div>
+
+    <label>제품 규격</label>
+    <select id="productSelect"></select>
+    <div class="hint" id="productHint"></div>
+
+    <label id="qtyLabel">물량 (㎡)</label>
+    <input type="number" id="qtyInput" min="0" step="0.01" placeholder="예: 1525">
+
+    <div class="toggle-row" id="reguaToggleRow">
+      <label style="margin:0;">규사 함께 상차</label>
+      <label class="switch"><input type="checkbox" id="reguaToggle" onchange="toggleRegua()"><span class="slider"></span></label>
+    </div>
+    <div class="regua-box" id="reguaBox">
+      <label>규사 수량 (포, 1포 = 120,000원)</label>
+      <input type="number" id="reguaBags" min="0" step="1" placeholder="예: 4">
+      <div class="hint" id="reguaHint"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>② 현장 지역</h2>
+    <label>지역 검색 (예: 울산, 수원, 광주)</label>
+    <div class="search-box">
+      <input type="text" id="siteSearch" placeholder="지역명을 입력하세요" autocomplete="off" oninput="onSiteSearch()">
+      <div class="search-results" id="siteResults"></div>
+    </div>
+    <div class="selected-site" id="selectedSite"></div>
+  </div>
+
+  <div class="card">
+    <h2>③ (선택) 제품 기본단가 합산</h2>
+    <label>제품 기본단가 (운반비 제외, 헤베당/EA당 원)</label>
+    <input type="number" id="basePriceInput" min="0" step="1" placeholder="예: 9000 (입력 시 최종 판매단가까지 계산)">
+    <div class="hint">비워두면 운반비만 계산합니다.</div>
+  </div>
+
+  <button class="btn-primary" id="calcBtn" onclick="calculate()">운반비 계산하기</button>
+
+  <div class="card result-card" id="resultCard">
+    <h2>📦 계산 결과</h2>
+    <div id="resultBody"></div>
+  </div>
+
+  <footer>사내용 운반비 계산 도구 · 제품/요율 데이터 기준일 2026-08</footer>
+</div>
+
+<script>
+const PRODUCTS = __PRODUCTS_JSON__;
+const RATES = __RATES_JSON__;
+
+const TIERS = [
+  {key:'1톤', w:1}, {key:'1.4톤', w:1.4}, {key:'2.5톤', w:2.5}, {key:'3.5톤', w:3.5},
+  {key:'5톤', w:5}, {key:'5톤축', w:12}, {key:'14톤', w:14}, {key:'18톤', w:18}, {key:'25톤', w:25}
+];
+// 5톤축은 명목 5톤이지만 실제 최대 12톤까지 적재 가능 (사용자 확인) → 잔여물량 매칭 시 12톤 용량으로 취급
+// unique-by-weight list for nearest-match suggestion (prefer earlier/lower-index on tie)
+const TIERS_UNIQUE = [];
+TIERS.forEach(t=>{ if(!TIERS_UNIQUE.some(u=>u.w===t.w)) TIERS_UNIQUE.push(t); });
+
+let currentTab = 'block';
+let selectedSiteEntry = null; // {group, gu, dong, rates}
+
+// ---------- flatten site list ----------
+const SITE_LIST = [];
+Object.keys(RATES).forEach(group=>{
+  RATES[group].forEach(e=>{
+    SITE_LIST.push({group, gu:e.gu, dong: (e.dong||'').toString(), rates:e.rates});
+  });
+});
+
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('tabBlock').classList.toggle('active', tab==='block');
+  document.getElementById('tabConi').classList.toggle('active', tab==='coni');
+  document.getElementById('qtyLabel').textContent = tab==='block' ? '물량 (㎡)' : '물량 (EA, 개)';
+  populateProducts();
+}
+
+function populateProducts(){
+  const sel = document.getElementById('productSelect');
+  sel.innerHTML = '';
+  const list = currentTab==='block' ? PRODUCTS.block : PRODUCTS.coni;
+  list.forEach((p,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = p.name + ' (' + p.spec + ')';
+    sel.appendChild(opt);
+  });
+  sel.onchange = updateProductHint;
+  updateProductHint();
+}
+
+function currentProduct(){
+  const idx = parseInt(document.getElementById('productSelect').value);
+  const list = currentTab==='block' ? PRODUCTS.block : PRODUCTS.coni;
+  return list[idx];
+}
+
+function updateProductHint(){
+  const p = currentProduct();
+  const hintEl = document.getElementById('productHint');
+  const reguaRow = document.getElementById('reguaToggleRow');
+  if(currentTab==='block'){
+    hintEl.innerHTML = `1P=${p.m2_per_p}㎡ · 단위무게 ${p.weight_per_m2}t/㎡ · 25톤 1대=${p.truck25_m2}㎡(${p.truck25_p}P)`;
+    if(p.regua_ok){
+      reguaRow.classList.remove('disabled-overlay');
+      document.getElementById('reguaHint').textContent = p.regua_note || '';
+    } else {
+      reguaRow.classList.add('disabled-overlay');
+      document.getElementById('reguaToggle').checked = false;
+      toggleRegua();
+    }
+  } else {
+    if(p.truck25_ea){
+      hintEl.innerHTML = `1P=${p.ea_per_p}EA · 단위무게 ${p.weight_per_ea}t/EA · 25톤 1대=${p.truck25_ea.toLocaleString()}EA(${p.truck25_p}P)`;
+    } else {
+      hintEl.innerHTML = `<span style="color:var(--red);font-weight:700;">⚠ 이 제품은 25톤 1대 적재량 데이터가 없어 자동계산이 불가합니다. (${p.note||''})</span>`;
+    }
+    reguaRow.classList.add('disabled-overlay');
+    document.getElementById('reguaToggle').checked = false;
+    toggleRegua();
+  }
+}
+
+function toggleRegua(){
+  const on = document.getElementById('reguaToggle').checked;
+  document.getElementById('reguaBox').classList.toggle('show', on);
+}
+
+// ---------- site search ----------
+function onSiteSearch(){
+  const q = document.getElementById('siteSearch').value.trim();
+  const resultsEl = document.getElementById('siteResults');
+  if(!q){ resultsEl.classList.remove('show'); resultsEl.innerHTML=''; return; }
+  const matches = SITE_LIST.filter(s => s.dong.includes(q) || s.gu.includes(q) || s.group.includes(q)).slice(0,40);
+  if(matches.length===0){
+    resultsEl.innerHTML = '<div style="color:var(--muted);">검색 결과가 없습니다</div>';
+  } else {
+    resultsEl.innerHTML = matches.map((m,i)=>
+      `<div onclick="pickSite(${SITE_LIST.indexOf(m)})"><div>${m.dong.replace(/\n/g,' ')}</div><div class="grp">${m.group} · ${m.gu}</div></div>`
+    ).join('');
+  }
+  resultsEl.classList.add('show');
+}
+
+function pickSite(idx){
+  selectedSiteEntry = SITE_LIST[idx];
+  const el = document.getElementById('selectedSite');
+  el.textContent = `선택된 현장: ${selectedSiteEntry.group} > ${selectedSiteEntry.gu} > ${selectedSiteEntry.dong.replace(/\n/g,' ')}`;
+  el.classList.add('show');
+  document.getElementById('siteResults').classList.remove('show');
+  document.getElementById('siteSearch').value = selectedSiteEntry.dong.replace(/\n/g,' ');
+}
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.search-box')){
+    document.getElementById('siteResults').classList.remove('show');
+  }
+});
+
+// ---------- calculation ----------
+function nearestTier(weight){
+  let best = TIERS_UNIQUE[0];
+  let bestDiff = Math.abs(weight - best.w);
+  for(const t of TIERS_UNIQUE){
+    const d = Math.abs(weight - t.w);
+    if(d < bestDiff - 1e-9){ best = t; bestDiff = d; }
+    else if(Math.abs(d-bestDiff) < 1e-9 && t.w < best.w){ best = t; bestDiff = d; }
+  }
+  return best;
+}
+
+function fmt(n){ return Math.round(n).toLocaleString(); }
+function fmt2(n){ return (Math.round(n*100)/100).toLocaleString(); }
+
+function calculate(){
+  const p = currentProduct();
+  const qty = parseFloat(document.getElementById('qtyInput').value);
+  const resultCard = document.getElementById('resultCard');
+  const body = document.getElementById('resultBody');
+
+  if(!qty || qty<=0){ alert('물량을 입력해 주세요.'); return; }
+  if(!selectedSiteEntry){ alert('현장 지역을 선택해 주세요.'); return; }
+
+  const capacity = currentTab==='block' ? p.truck25_m2 : p.truck25_ea;
+  const unitWeight = currentTab==='block' ? p.weight_per_m2 : p.weight_per_ea;
+  const unitLabel = currentTab==='block' ? '㎡' : 'EA';
+
+  if(!capacity){
+    body.innerHTML = `<div class="note-box">⚠ 이 제품은 25톤 1대 기준 적재량 데이터가 없어 자동 계산이 불가능합니다. 담당자에게 적재량 정보를 확인해 주세요.</div>`;
+    resultCard.classList.add('show');
+    resultCard.scrollIntoView({behavior:'smooth'});
+    return;
+  }
+
+  const fullTrucks = Math.floor(qty / capacity);
+  const loaded = fullTrucks * capacity;
+  let remainder = qty - loaded;
+  if(remainder < 1e-9) remainder = 0;
+  const remainderWeight = remainder * unitWeight;
+  const suggestedTier = remainder>0 ? nearestTier(remainderWeight) : null;
+
+  // rates
+  const rates = selectedSiteEntry.rates;
+  const rate25 = rates['25톤'] || 0;
+
+  let remainderTierKey = suggestedTier ? suggestedTier.key : null;
+
+  function computeTotal(tierKey){
+    let total = fullTrucks * rate25 * 10000;
+    if(remainder>0 && tierKey){
+      total += (rates[tierKey]||0) * 10000;
+    }
+    return total;
+  }
+
+  const bagsOn = document.getElementById('reguaToggle').checked && p.regua_ok !== false && currentTab==='block';
+  const bags = bagsOn ? (parseFloat(document.getElementById('reguaBags').value)||0) : 0;
+  const reguaCost = bags * 120000;
+
+  const basePrice = parseFloat(document.getElementById('basePriceInput').value) || 0;
+
+  function render(){
+    const total = computeTotal(remainderTierKey);
+    const perUnitTransport = total / qty;
+    const perUnitRegua = bags>0 ? reguaCost / qty : 0;
+    const perUnitFinal = perUnitTransport + perUnitRegua;
+
+    let tierOptionsHtml = '';
+    if(remainder>0){
+      tierOptionsHtml = TIERS.map(t=>
+        `<option value="${t.key}" ${t.key===remainderTierKey?'selected':''}>${t.key}${t.key==='5톤축'?'(최대12t)':''} (${rates[t.key]!==undefined? (rates[t.key]*10000).toLocaleString()+'원':'요율없음'})</option>`
+      ).join('');
+    }
+
+    let html = '';
+    html += `<div class="row-between"><span class="lbl">입력 물량</span><span class="val">${fmt2(qty)} ${unitLabel}</span></div>`;
+    html += `<div class="row-between"><span class="lbl">현장</span><span class="val">${selectedSiteEntry.dong.replace(/\n/g,' ')} (${selectedSiteEntry.group})</span></div>`;
+    html += `<hr class="divider">`;
+    html += `<div><span class="badge">최적 운반 구성</span></div>`;
+    html += `<table><thead><tr><th>구간</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>`;
+    html += `<tr><td>25톤 트럭</td><td>${fullTrucks}대</td><td>${(rate25*10000).toLocaleString()}원</td><td>${fmt(fullTrucks*rate25*10000)}원</td></tr>`;
+    if(remainder>0){
+      html += `<tr><td>잔여 물량</td><td>${fmt2(remainder)} ${unitLabel} (약 ${fmt2(remainderWeight)}톤)</td><td colspan="2"></td></tr>`;
+    }
+    html += `</tbody></table>`;
+
+    if(remainder>0){
+      html += `<div class="remainder-select">
+        <label>잔여 물량 배차 톤급 (자동 추천: <b>${suggestedTier.key}</b>, 필요시 변경 가능)</label>
+        <select id="tierSelect" onchange="onTierChange()">${tierOptionsHtml}</select>
+      </div>`;
+    }
+
+    html += `<hr class="divider">`;
+    html += `<div class="row-between"><span class="lbl">운반비 합계</span><span class="val">${fmt(total)}원</span></div>`;
+    html += `<div class="row-between"><span class="lbl">${unitLabel}당 운반비</span><span class="val" style="color:var(--blue-dark);font-size:16px;">${fmt(perUnitTransport)}원</span></div>`;
+
+    if(bags>0){
+      html += `<hr class="divider">`;
+      html += `<div><span class="badge">규사</span></div>`;
+      html += `<div class="row-between"><span class="lbl">규사 ${bags}포 × 120,000원</span><span class="val">${fmt(reguaCost)}원</span></div>`;
+      html += `<div class="row-between"><span class="lbl">${unitLabel}당 규사비</span><span class="val">${fmt(perUnitRegua)}원</span></div>`;
+    }
+
+    if(basePrice>0){
+      html += `<div class="final-box">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">최종 판매단가 (기본단가 + 운반비${bags>0?' + 규사비':''})</div>
+        <div class="amount">${fmt(Math.round(basePrice)+Math.round(perUnitTransport)+Math.round(perUnitRegua))}원 <span style="font-size:13px;color:var(--muted);font-weight:600;">/ ${unitLabel}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">= 기본단가 ${fmt(basePrice)}원 + 운반비 ${fmt(perUnitTransport)}원${bags>0?' + 규사비 '+fmt(perUnitRegua)+'원':''}</div>
+      </div>`;
+    }
+
+    if(p.regua_note && currentTab==='block' && !bagsOn){
+      // no-op
+    }
+    if(currentTab==='block' && p.regua_ok===false){
+      html += `<div class="note-box">이 제품은 규사 상차 관련 데이터가 없습니다. 규사를 함께 보내야 하는 경우 담당자 확인이 필요합니다.</div>`;
+    }
+
+    body.innerHTML = html;
+  }
+
+  window.onTierChange = function(){
+    remainderTierKey = document.getElementById('tierSelect').value;
+    render();
+  };
+
+  render();
+  resultCard.classList.add('show');
+  resultCard.scrollIntoView({behavior:'smooth'});
+}
+
+populateProducts();
+</script>
+</body>
+</html>
