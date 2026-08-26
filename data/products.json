@@ -1,4 +1,9 @@
 {
+ "mix_config": {
+  "max_cap_ton_default": 27.2,
+  "max_cap_ton_shorthaul": 28,
+  "shorthaul_note": "근거리 노선(예: 대구~구미) 한정. 과적 단속 위험이 있어 노선을 확실히 아는 경우에만 사용하세요."
+ },
  "block": [
   {
    "id": "neo6t_2020060",
@@ -11,7 +16,10 @@
    "truck25_m2": 198,
    "truck25_p": 11,
    "regua_ok": true,
-   "regua_note": "11P + 규사 1포까지 상차 가능"
+   "regua_note": "11P + 규사 1포까지 상차 가능",
+   "truck25_m2_regua": 198,
+   "truck25_p_regua": 11,
+   "regua_max_bags_per_truck": 1
   },
   {
    "id": "neo_1020060",
@@ -24,7 +32,10 @@
    "truck25_m2": 210,
    "truck25_p": 14,
    "regua_ok": true,
-   "regua_note": "규사 상차 시 13P까지 가능"
+   "regua_note": "규사 상차 시 13P까지 가능",
+   "truck25_m2_regua": 195,
+   "truck25_p_regua": 13,
+   "regua_max_bags_per_truck": 1
   },
   {
    "id": "neo8t_2020080",
@@ -37,7 +48,10 @@
    "truck25_m2": 158.4,
    "truck25_p": 11,
    "regua_ok": true,
-   "regua_note": "규사 상차 시 10P + 최대 규사 2포"
+   "regua_note": "규사 상차 시 10P + 최대 규사 2포",
+   "truck25_m2_regua": 144,
+   "truck25_p_regua": 10,
+   "regua_max_bags_per_truck": 2
   },
   {
    "id": "neo_1020080",
@@ -50,7 +64,10 @@
    "truck25_m2": 158.4,
    "truck25_p": 12,
    "regua_ok": true,
-   "regua_note": "규사 상차 시 11P + 최대 규사 2포"
+   "regua_note": "규사 상차 시 11P + 최대 규사 2포",
+   "truck25_m2_regua": 145.2,
+   "truck25_p_regua": 11,
+   "regua_max_bags_per_truck": 2
   },
   {
    "id": "cd_20016510",
@@ -63,7 +80,10 @@
    "truck25_m2": 140.4,
    "truck25_p": 15,
    "regua_ok": true,
-   "regua_note": "규사 상차 시 14P까지 가능"
+   "regua_note": "규사 상차 시 14P까지 가능",
+   "truck25_m2_regua": 131.04,
+   "truck25_p_regua": 14,
+   "regua_max_bags_per_truck": 1
   },
   {
    "id": "cd_2001658",
@@ -76,7 +96,10 @@
    "truck25_m2": 149.76,
    "truck25_p": 12,
    "regua_ok": true,
-   "regua_note": "규사 상차 시 11P까지 가능"
+   "regua_note": "규사 상차 시 11P까지 가능",
+   "truck25_m2_regua": 137.28,
+   "truck25_p_regua": 11,
+   "regua_max_bags_per_truck": 1
   },
   {
    "id": "multi_1020124060",
@@ -89,7 +112,10 @@
    "truck25_m2": 207.9,
    "truck25_p": 11,
    "regua_ok": true,
-   "regua_note": "규사 상차 시 10P까지 가능"
+   "regua_note": "규사 상차 시 10P까지 가능",
+   "truck25_m2_regua": 189,
+   "truck25_p_regua": 10,
+   "regua_max_bags_per_truck": 1
   },
   {
    "id": "line_3003012",
