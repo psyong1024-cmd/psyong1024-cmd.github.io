@@ -35,6 +35,7 @@
   }
   .radio-row.small button{padding:9px 6px;font-size:13px;}
   .radio-row button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .radio-row button:disabled{opacity:.4;cursor:not-allowed;}
   .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;}
   .hint.warn{color:var(--amber);}
   .search-box{position:relative;}
@@ -181,6 +182,7 @@ function lineHtml(idx){
     <div class="radio-row small">
       <button type="button" id="tabBlock_${idx}" class="active" onclick="switchTab(${idx},'block')">보도블럭/잔디 (㎡)</button>
       <button type="button" id="tabConi_${idx}" onclick="switchTab(${idx},'coni')">코니스톤 (EA)</button>
+      <button type="button" id="tabWall_${idx}" onclick="switchTab(${idx},'wall')">옹벽 (㎡)</button>
     </div>
     <label>제품 규격</label>
     <select id="productSelect_${idx}"></select>
@@ -219,12 +221,13 @@ function removeLine(idx){
 }
 
 function refreshLineChrome(){
-  document.getElementById('addLineBtn').disabled = lineCount>=3;
-  document.getElementById('mixOptionsCard').style.display = lineCount>=2 ? 'block' : 'none';
+  const wallActive = lineTabs[0]==='wall';
+  document.getElementById('addLineBtn').disabled = lineCount>=3 || wallActive;
+  document.getElementById('mixOptionsCard').style.display = (lineCount>=2 && !wallActive) ? 'block' : 'none';
   const mixNote = document.getElementById('mixNote');
   if(lineCount>=2){
     mixNote.style.display = 'block';
-    mixNote.textContent = '제품 2개 이상은 한 트럭에 섞어 싣는 것까지 최적화합니다 (무게 기준, 실제 적재 공간 제약은 별도 확인 필요).';
+    mixNote.textContent = '제품 2개 이상은 한 트럭에 섞어 싣는 것까지 최적화합니다 (무게 기준, 실제 적재 공간 제약은 별도 확인 필요). 옹벽류는 섞어 싣기를 지원하지 않습니다.';
   } else {
     mixNote.style.display = 'none';
   }
@@ -232,21 +235,34 @@ function refreshLineChrome(){
   for(let i=0;i<3;i++){
     const btn = document.getElementById('removeBtn_'+i);
     if(btn) btn.style.display = lineCount>1 ? 'inline-block' : 'none';
+    const wallBtn = document.getElementById('tabWall_'+i);
+    if(wallBtn){
+      wallBtn.disabled = !(i===0 && lineCount===1);
+    }
   }
 }
 
 function switchTab(idx, tab){
+  if(tab==='wall' && !(idx===0 && lineCount===1)) return; // 옹벽은 단일 제품일 때만 선택 가능
   lineTabs[idx] = tab;
   document.getElementById('tabBlock_'+idx).classList.toggle('active', tab==='block');
   document.getElementById('tabConi_'+idx).classList.toggle('active', tab==='coni');
-  document.getElementById('qtyLabel_'+idx).textContent = tab==='block' ? '물량 (㎡)' : '물량 (EA, 개)';
+  document.getElementById('tabWall_'+idx).classList.toggle('active', tab==='wall');
+  document.getElementById('qtyLabel_'+idx).textContent = tab==='coni' ? '물량 (EA, 개)' : '물량 (㎡)';
   populateProducts(idx);
+  refreshLineChrome();
+}
+
+function productListFor(tab){
+  if(tab==='block') return PRODUCTS.block;
+  if(tab==='coni') return PRODUCTS.coni;
+  return PRODUCTS.wall;
 }
 
 function populateProducts(idx){
   const sel = document.getElementById('productSelect_'+idx);
   sel.innerHTML = '';
-  const list = lineTabs[idx]==='block' ? PRODUCTS.block : PRODUCTS.coni;
+  const list = productListFor(lineTabs[idx]);
   list.forEach((p,i)=>{
     const opt = document.createElement('option');
     opt.value = i;
@@ -259,7 +275,7 @@ function populateProducts(idx){
 
 function currentProduct(idx){
   const idxSel = parseInt(document.getElementById('productSelect_'+idx).value);
-  const list = lineTabs[idx]==='block' ? PRODUCTS.block : PRODUCTS.coni;
+  const list = productListFor(lineTabs[idx]);
   return list[idxSel];
 }
 
@@ -267,6 +283,7 @@ function updateProductHint(idx){
   const p = currentProduct(idx);
   const hintEl = document.getElementById('productHint_'+idx);
   const reguaRow = document.getElementById('reguaToggleRow_'+idx);
+  reguaRow.style.display = '';
   if(lineTabs[idx]==='block'){
     hintEl.innerHTML = `1P=${p.m2_per_p}㎡ · 단위무게 ${p.weight_per_m2}t/㎡ · 25톤 1대=${p.truck25_m2}㎡(${p.truck25_p}P)`;
     if(p.regua_ok){
@@ -277,6 +294,11 @@ function updateProductHint(idx){
       document.getElementById('reguaToggle_'+idx).checked = false;
       toggleRegua(idx);
     }
+  } else if(lineTabs[idx]==='wall'){
+    hintEl.innerHTML = `1P=${p.m2_per_p}㎡ · 5톤단축=${p.truck5s_m2}㎡(${p.truck5s_p}P, 최대${p.truck5s_ton}톤) · 5톤장축=${p.truck5l_m2}㎡(${p.truck5l_p}P, 최대${p.truck5l_ton}톤)`;
+    reguaRow.style.display = 'none';
+    document.getElementById('reguaToggle_'+idx).checked = false;
+    toggleRegua(idx);
   } else {
     if(p.truck25_ea){
       hintEl.innerHTML = `1P=${p.ea_per_p}EA · 단위무게 ${p.weight_per_ea}t/EA · 25톤 1대=${p.truck25_ea.toLocaleString()}EA(${p.truck25_p}P)`;
@@ -352,12 +374,17 @@ function gatherLine(idx){
   const tab = lineTabs[idx];
   const p = currentProduct(idx);
   const qty = parseFloat(document.getElementById('qtyInput_'+idx).value);
-  const reguaOn = document.getElementById('reguaToggle_'+idx).checked && p.regua_ok !== false && tab==='block';
+  const reguaOn = tab==='block' && document.getElementById('reguaToggle_'+idx).checked && p.regua_ok !== false;
   const bags = reguaOn ? (parseFloat(document.getElementById('reguaBags_'+idx).value)||0) : 0;
   const basePrice = parseFloat(document.getElementById('basePriceInput_'+idx).value) || 0;
-  const unitWeight = tab==='block' ? p.weight_per_m2 : p.weight_per_ea;
-  const unitLabel = tab==='block' ? '㎡' : 'EA';
-  const capacity = tab==='block' ? p.truck25_m2 : p.truck25_ea;
+  let unitWeight, unitLabel, capacity;
+  if(tab==='block'){
+    unitWeight = p.weight_per_m2; unitLabel = '㎡'; capacity = p.truck25_m2;
+  } else if(tab==='wall'){
+    unitWeight = p.weight_per_m2; unitLabel = '㎡'; capacity = null;
+  } else {
+    unitWeight = p.weight_per_ea; unitLabel = 'EA'; capacity = p.truck25_ea;
+  }
   return {idx, tab, p, qty, reguaOn, bags, basePrice, unitWeight, unitLabel, capacity};
 }
 
@@ -457,6 +484,71 @@ function renderSingleLine(line, calc, rates, tierKey){
   if(calc.p.regua_ok===false && line.tab==='block'){
     html += `<div class="note-box">이 제품은 규사 상차 관련 데이터가 없습니다. 규사를 함께 보내야 하는 경우 담당자 확인이 필요합니다.</div>`;
   }
+
+  return html;
+}
+
+// ================= WALL ENGINE (5톤단축/장축 조합 최적화) =================
+// 옹벽류(보강토옹벽·식생옹벽·식생호안)는 현장 진입로가 좁아 25톤을 못 쓰고
+// 5톤단축·장축 트럭 조합으로만 배차한다. 두 트럭 종류의 전체 조합 중
+// 총 운반비가 최소가 되는 조합을 탐색한다(부분 적재 허용, 섞어 싣기 미지원).
+function computeWallLine(line, rates){
+  const {p, qty} = line;
+  const capS = p.truck5s_m2, capL = p.truck5l_m2;
+  if(!capS || !capL){
+    return {error: '이 제품은 5톤단축/장축 적재량 데이터가 없어 계산이 불가능합니다.'};
+  }
+  const rateS = rates['5톤'] || 0;
+  const rateL = rates['5톤축'] || 0;
+  const maxNl = Math.ceil(qty / capL - 1e-9);
+  let best = null;
+  for(let nl=0; nl<=maxNl; nl++){
+    const remaining = qty - nl*capL;
+    const ns = remaining>1e-9 ? Math.ceil(remaining/capS - 1e-9) : 0;
+    const cost = nl*rateL*10000 + ns*rateS*10000;
+    const truckCount = nl+ns;
+    if(!best || cost < best.cost - 1e-6 || (Math.abs(cost-best.cost)<1e-6 && truckCount < best.nl+best.ns)){
+      best = {nl, ns, cost};
+    }
+  }
+  return {p, qty, capS, capL, rateS, rateL, best};
+}
+
+function renderWallLine(line, calc, rates){
+  const {best} = calc;
+  const total = best.cost;
+  const perUnit = total / calc.qty;
+
+  let html = '';
+  html += `<div class="row-between"><span class="lbl">입력 물량</span><span class="val">${fmt2(calc.qty)} ㎡</span></div>`;
+  html += `<div class="row-between"><span class="lbl">현장</span><span class="val">${selectedSiteEntry.dong.replace(/\n/g,' ')} (${selectedSiteEntry.group})</span></div>`;
+  html += `<hr class="divider">`;
+  html += `<div><span class="badge">최적 운반 구성 (5톤단축+장축 조합)</span></div>`;
+  html += `<table><thead><tr><th>구간</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>`;
+  if(best.nl>0){
+    html += `<tr><td>5톤장축</td><td>${best.nl}대</td><td>${(calc.rateL*10000).toLocaleString()}원</td><td>${fmt(best.nl*calc.rateL*10000)}원</td></tr>`;
+  }
+  if(best.ns>0){
+    html += `<tr><td>5톤단축</td><td>${best.ns}대</td><td>${(calc.rateS*10000).toLocaleString()}원</td><td>${fmt(best.ns*calc.rateS*10000)}원</td></tr>`;
+  }
+  if(best.nl===0 && best.ns===0){
+    html += `<tr><td>배차</td><td>0대</td><td colspan="2"></td></tr>`;
+  }
+  html += `</tbody></table>`;
+
+  html += `<hr class="divider">`;
+  html += `<div class="row-between"><span class="lbl">운반비 합계</span><span class="val">${fmt(total)}원</span></div>`;
+  html += `<div class="row-between"><span class="lbl">㎡당 운반비</span><span class="val" style="color:var(--blue-dark);font-size:16px;">${fmt(perUnit)}원</span></div>`;
+
+  if(line.basePrice>0){
+    html += `<div class="final-box">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">최종 판매단가 (기본단가 + 운반비)</div>
+      <div class="amount">${fmt(Math.round(line.basePrice)+Math.round(perUnit))}원 <span style="font-size:13px;color:var(--muted);font-weight:600;">/ ㎡</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">= 기본단가 ${fmt(line.basePrice)}원 + 운반비 ${fmt(perUnit)}원</div>
+    </div>`;
+  }
+
+  html += `<div class="note-box">옹벽류는 현장 진입로가 좁아 25톤 대신 5톤단축/장축 트럭 조합으로 계산합니다. 실제 현장 접근 가능 여부는 담당자 확인을 권장합니다.</div>`;
 
   return html;
 }
@@ -584,7 +676,18 @@ function calculate(){
   const rates = selectedSiteEntry.rates;
   remainderTierKeyOverride = null;
 
-  if(lines.length===1){
+  if(lines.length===1 && lines[0].tab==='wall'){
+    const line = lines[0];
+    const calc = computeWallLine(line, rates);
+    if(calc.error){
+      body.innerHTML = `<div class="note-box">⚠ ${calc.error}</div>`;
+      resultCard.classList.add('show');
+      resultCard.scrollIntoView({behavior:'smooth'});
+      return;
+    }
+    lastCalcState = {mode:'wall', line, calc, rates};
+    body.innerHTML = renderWallLine(line, calc, rates);
+  } else if(lines.length===1){
     const line = lines[0];
     const calc = computeSingleLine(line);
     if(calc.error){
