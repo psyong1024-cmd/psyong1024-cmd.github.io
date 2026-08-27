@@ -83,7 +83,7 @@
    "regua_note": "규사 상차 시 14P까지 가능",
    "truck25_m2_regua": 131.04,
    "truck25_p_regua": 14,
-   "regua_max_bags_per_truck": 1
+   "regua_max_bags_per_truck": 2
   },
   {
    "id": "cd_2001658",
@@ -99,7 +99,7 @@
    "regua_note": "규사 상차 시 11P까지 가능",
    "truck25_m2_regua": 137.28,
    "truck25_p_regua": 11,
-   "regua_max_bags_per_truck": 1
+   "regua_max_bags_per_truck": 2
   },
   {
    "id": "multi_1020124060",
@@ -115,7 +115,7 @@
    "regua_note": "규사 상차 시 10P까지 가능",
    "truck25_m2_regua": 189,
    "truck25_p_regua": 10,
-   "regua_max_bags_per_truck": 1
+   "regua_max_bags_per_truck": 2
   },
   {
    "id": "line_3003012",
@@ -123,7 +123,7 @@
    "spec": "300×300×120",
    "ea_per_p": 108,
    "ea_per_m2": 11.11,
-   "weight_per_m2": 1.17,
+   "weight_per_m2": 0.17,
    "m2_per_p": 9.72,
    "truck25_m2": 155.52,
    "truck25_p": 16,
@@ -136,7 +136,7 @@
    "spec": "300×300×80",
    "ea_per_p": 144,
    "ea_per_m2": 11.11,
-   "weight_per_m2": 1.16,
+   "weight_per_m2": 0.12,
    "m2_per_p": 12.96,
    "truck25_m2": 207.36,
    "truck25_p": 16,
