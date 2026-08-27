@@ -155,7 +155,9 @@
    "truck25_p": 16,
    "regua_ok": false,
    "regua_note": null
-  },
+  }
+ ],
+ "wall": [
   {
    "id": "retain_4504502",
    "name": "보강토옹벽",
@@ -164,10 +166,12 @@
    "ea_per_m2": 11.11,
    "weight_per_m2": 0.69,
    "m2_per_p": 2.16,
-   "truck25_m2": 38.88,
-   "truck25_p": 18,
-   "regua_ok": false,
-   "regua_note": null
+   "truck5s_m2": 8.64,
+   "truck5s_p": 4,
+   "truck5s_ton": 6,
+   "truck5l_m2": 17.28,
+   "truck5l_p": 8,
+   "truck5l_ton": 12
   },
   {
    "id": "veg_wall_L",
@@ -177,10 +181,12 @@
    "ea_per_m2": 2,
    "weight_per_m2": 0.8,
    "m2_per_p": 1.5,
-   "truck25_m2": 33,
-   "truck25_p": 22,
-   "regua_ok": false,
-   "regua_note": null
+   "truck5s_m2": 7.5,
+   "truck5s_p": 5,
+   "truck5s_ton": 6,
+   "truck5l_m2": 15,
+   "truck5l_p": 10,
+   "truck5l_ton": 12
   },
   {
    "id": "veg_bank_L",
@@ -188,12 +194,14 @@
    "spec": "1000×1000×250",
    "ea_per_p": 5,
    "ea_per_m2": 1,
-   "weight_per_m2": 0.36,
-   "m2_per_p": 5,
-   "truck25_m2": 75,
-   "truck25_p": 15,
-   "regua_ok": false,
-   "regua_note": null
+   "weight_per_m2": 1.0,
+   "m2_per_p": 1.75,
+   "truck5s_m2": 5.25,
+   "truck5s_p": 3,
+   "truck5s_ton": 5.25,
+   "truck5l_m2": 12.25,
+   "truck5l_p": 7,
+   "truck5l_ton": 12.25
   }
  ],
  "coni": [
