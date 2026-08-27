@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>운반비 계산 프로그램</title>
 <style>
   :root{
@@ -137,7 +140,7 @@
     <div id="resultBody"></div>
   </div>
 
-  <footer>사내용 운반비 계산 도구 · 제품/요율 데이터 기준일 2026-08</footer>
+  <footer>사내용 운반비 계산 도구 · 제품/요율 데이터 기준일 2026-08 · 버전 __BUILD_VERSION__</footer>
 </div>
 
 <script>
@@ -414,9 +417,14 @@ function renderSingleLine(line, calc, rates, tierKey){
   html += `<hr class="divider">`;
   html += `<div><span class="badge">최적 운반 구성</span></div>`;
   html += `<table><thead><tr><th>구간</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>`;
-  html += `<tr><td>25톤 트럭</td><td>${calc.fullTrucks}대${calc.regTrucks>0?` (규사 적재 ${calc.regTrucks}대 포함)`:''}</td><td>${(rate25*10000).toLocaleString()}원</td><td>${fmt(calc.fullTrucks*rate25*10000)}원</td></tr>`;
+  if(calc.fullTrucks>0){
+    html += `<tr><td>25톤 트럭</td><td>${calc.fullTrucks}대${calc.regTrucks>0?` (규사 적재 ${calc.regTrucks}대 포함)`:''}</td><td>${(rate25*10000).toLocaleString()}원</td><td>${fmt(calc.fullTrucks*rate25*10000)}원</td></tr>`;
+  }
   if(calc.remainder>0){
     html += `<tr><td>잔여 물량</td><td>${fmt2(calc.remainder)} ${calc.unitLabel} (약 ${fmt2(calc.remainderWeight)}톤)</td><td colspan="2"></td></tr>`;
+  }
+  if(calc.fullTrucks===0 && calc.remainder<=0){
+    html += `<tr><td>25톤 트럭</td><td>0대</td><td colspan="2"></td></tr>`;
   }
   html += `</tbody></table>`;
 
@@ -486,9 +494,14 @@ function renderMixed(calc, rates, tierKey, maxCap){
   html += `<hr class="divider">`;
   html += `<div><span class="badge">최적 운반 구성 (섞어 싣기)</span></div>`;
   html += `<table><thead><tr><th>구간</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>`;
-  html += `<tr><td>25톤 트럭</td><td>${calc.fullTrucks}대</td><td>${(rate25*10000).toLocaleString()}원</td><td>${fmt(calc.fullTrucks*rate25*10000)}원</td></tr>`;
+  if(calc.fullTrucks>0){
+    html += `<tr><td>25톤 트럭</td><td>${calc.fullTrucks}대</td><td>${(rate25*10000).toLocaleString()}원</td><td>${fmt(calc.fullTrucks*rate25*10000)}원</td></tr>`;
+  }
   if(calc.remainderWeight>0){
     html += `<tr><td>잔여 중량</td><td>약 ${fmt2(calc.remainderWeight)}톤</td><td colspan="2"></td></tr>`;
+  }
+  if(calc.fullTrucks===0 && calc.remainderWeight<=0){
+    html += `<tr><td>25톤 트럭</td><td>0대</td><td colspan="2"></td></tr>`;
   }
   html += `</tbody></table>`;
 
