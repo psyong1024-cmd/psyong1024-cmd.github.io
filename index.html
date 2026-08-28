@@ -53,8 +53,11 @@
   .regua-box{display:none;border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
   .regua-box.show{display:block;}
   .wall-dispatch-box{border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
+  .truck-check-actions{display:flex;gap:8px;margin-top:8px;}
+  .truck-check-actions button{flex:1;padding:8px 6px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;}
+  .truck-check-actions button:active{background:#eff4ff;}
   .truck-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
-  .truck-check{display:flex;align-items:center;gap:6px;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;background:#fff;}
+  .truck-check{display:flex;align-items:center;gap:6px;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;background:#fff;margin:0;}
   .truck-check input{width:16px;height:16px;flex-shrink:0;}
   .truck-check .muted{font-weight:500;color:var(--muted);font-size:12px;}
   .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
@@ -146,7 +149,7 @@
     <div id="resultBody"></div>
   </div>
 
-  <footer>사내용 운반비 계산 도구 · 제품/요율 데이터 기준일 2026-08 · 버전 2026-08-28 17:01 KST</footer>
+  <footer>사내용 운반비 계산 도구 · 제품/요율 데이터 기준일 2026-08 · 버전 2026-08-28 17:22 KST</footer>
 </div>
 
 <script>
@@ -196,6 +199,10 @@ function lineHtml(idx){
     <input type="number" id="qtyInput_${idx}" min="0" step="0.01" placeholder="예: 1525">
     <div class="wall-dispatch-box" id="wallDispatchBox_${idx}" style="display:none;">
       <label>배차 가능한 차량 (현장에 진입 가능한 차량만 체크 — 체크한 차량 중 최적 조합을 자동 계산합니다)</label>
+      <div class="truck-check-actions">
+        <button type="button" onclick="setAllTrucks(${idx}, true)">전체 선택</button>
+        <button type="button" onclick="setAllTrucks(${idx}, false)">전체 해제</button>
+      </div>
       <div class="truck-check-grid" id="truckCheckGrid_${idx}"></div>
     </div>
     <div class="toggle-row" id="reguaToggleRow_${idx}">
@@ -349,6 +356,12 @@ function renderTruckCheckboxes(idx, p){
     const cap = capMap[t.key];
     return `<label class="truck-check"><input type="checkbox" id="truckChk_${idx}_${t.key}" checked> ${t.key} <span class="muted">(~${fmt2(cap)}㎡/대)</span></label>`;
   }).join('');
+}
+
+function setAllTrucks(idx, val){
+  const grid = document.getElementById('truckCheckGrid_'+idx);
+  if(!grid) return;
+  grid.querySelectorAll('input[type=checkbox]').forEach(cb=>{ cb.checked = val; });
 }
 
 // 체크된 톤급 옵션들로 물량을 모두 커버하는 조합 중 총 운반비가 최소인 조합을 탐색한다.
