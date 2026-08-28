@@ -53,6 +53,10 @@
   .regua-box{display:none;border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
   .regua-box.show{display:block;}
   .wall-dispatch-box{border-top:1px dashed var(--border);margin-top:12px;padding-top:12px;}
+  .truck-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .truck-check{display:flex;align-items:center;gap:6px;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;background:#fff;}
+  .truck-check input{width:16px;height:16px;flex-shrink:0;}
+  .truck-check .muted{font-weight:500;color:var(--muted);font-size:12px;}
   .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
   .toggle-row label{margin:0;}
   .switch{position:relative;width:46px;height:26px;flex-shrink:0;}
@@ -142,7 +146,7 @@
     <div id="resultBody"></div>
   </div>
 
-  <footer>사내용 운반비 계산 도구 · 제품/요율 데이터 기준일 2026-08 · 버전 2026-08-28 15:12 KST</footer>
+  <footer>사내용 운반비 계산 도구 · 제품/요율 데이터 기준일 2026-08 · 버전 2026-08-28 17:01 KST</footer>
 </div>
 
 <script>
@@ -189,13 +193,10 @@ function lineHtml(idx){
     <select id="productSelect_${idx}"></select>
     <div class="hint" id="productHint_${idx}"></div>
     <label id="qtyLabel_${idx}">물량 (㎡)</label>
-    <input type="number" id="qtyInput_${idx}" min="0" step="0.01" placeholder="예: 1525" oninput="updateWallDispatchHint(${idx})">
+    <input type="number" id="qtyInput_${idx}" min="0" step="0.01" placeholder="예: 1525">
     <div class="wall-dispatch-box" id="wallDispatchBox_${idx}" style="display:none;">
-      <label>5톤단축 대수</label>
-      <input type="number" id="truck5sInput_${idx}" min="0" step="1" placeholder="예: 0" oninput="updateWallDispatchHint(${idx})">
-      <label>5톤장축 대수</label>
-      <input type="number" id="truck5lInput_${idx}" min="0" step="1" placeholder="예: 2" oninput="updateWallDispatchHint(${idx})">
-      <div class="hint" id="wallDispatchHint_${idx}"></div>
+      <label>배차 가능한 차량 (현장에 진입 가능한 차량만 체크 — 체크한 차량 중 최적 조합을 자동 계산합니다)</label>
+      <div class="truck-check-grid" id="truckCheckGrid_${idx}"></div>
     </div>
     <div class="toggle-row" id="reguaToggleRow_${idx}">
       <label style="margin:0;">규사 함께 상차</label>
@@ -304,12 +305,12 @@ function updateProductHint(idx){
       toggleRegua(idx);
     }
   } else if(lineTabs[idx]==='wall'){
-    hintEl.innerHTML = `1P=${p.m2_per_p}㎡ · 5톤단축 1대=${p.truck5s_m2}㎡(${p.truck5s_p}P, 최대${p.truck5s_ton}톤) · 5톤장축 1대=${p.truck5l_m2}㎡(${p.truck5l_p}P, 최대${p.truck5l_ton}톤)`;
+    hintEl.innerHTML = `1P=${p.m2_per_p}㎡ · 5톤단축 1대=${p.truck5s_m2}㎡(${p.truck5s_p}P, 최대${p.truck5s_ton}톤) · 5톤장축 1대=${p.truck5l_m2}㎡(${p.truck5l_p}P, 최대${p.truck5l_ton}톤) · 그 외 톤급은 무게 기준 추정치`;
     reguaRow.style.display = 'none';
     document.getElementById('reguaToggle_'+idx).checked = false;
     toggleRegua(idx);
     document.getElementById('wallDispatchBox_'+idx).style.display = 'block';
-    updateWallDispatchHint(idx);
+    renderTruckCheckboxes(idx, p);
   } else {
     if(p.truck25_ea){
       hintEl.innerHTML = `1P=${p.ea_per_p}EA · 단위무게 ${p.weight_per_ea}t/EA · 25톤 1대=${p.truck25_ea.toLocaleString()}EA(${p.truck25_p}P)`;
@@ -327,30 +328,59 @@ function toggleRegua(idx){
   document.getElementById('reguaBox_'+idx).classList.toggle('show', on);
 }
 
-// 옹벽 파트: 입력 중인 5톤단축/장축 대수로 실제 실을 수 있는 양을 미리 보여준다 (참고용, 계산은 계산하기 버튼에서 확정).
-function updateWallDispatchHint(idx){
-  const hintEl = document.getElementById('wallDispatchHint_'+idx);
-  if(!hintEl) return;
-  const p = currentProduct(idx);
-  if(!p || lineTabs[idx]!=='wall') return;
-  const ns = parseFloat(document.getElementById('truck5sInput_'+idx).value) || 0;
-  const nl = parseFloat(document.getElementById('truck5lInput_'+idx).value) || 0;
-  const qty = parseFloat(document.getElementById('qtyInput_'+idx).value) || 0;
-  const capacity = ns*p.truck5s_m2 + nl*p.truck5l_m2;
-  if(ns<=0 && nl<=0){
-    hintEl.innerHTML = '5톤단축·5톤장축 대수를 입력하면 적재 가능량을 미리 보여줍니다.';
-    return;
-  }
-  let msg = `선택한 배차로 최대 ${fmt2(capacity)}㎡ 적재 가능`;
-  if(qty>0){
-    const diff = capacity - qty;
-    if(diff < -1e-9){
-      msg += ` · <span style="color:var(--red);font-weight:700;">물량 ${fmt2(qty)}㎡ 대비 ${fmt2(-diff)}㎡ 부족</span>`;
-    } else {
-      msg += ` · 물량 ${fmt2(qty)}㎡ 대비 ${fmt2(diff)}㎡ 여유`;
+// 옹벽 파트: 제품별로 톤급별(1톤~25톤) 1대당 적재량(㎡)을 계산한다.
+// 5톤/5톤축은 현장에서 확인된 정확한 값(truck5s_m2/truck5l_m2)을 쓰고,
+// 나머지 톤급은 해당 톤급의 명목 적재중량 ÷ 제품 단위무게(t/㎡)로 추정한다.
+function wallCapacityByTier(p){
+  const map = {};
+  TIERS.forEach(t=>{
+    if(t.key==='5톤'){ map[t.key] = p.truck5s_m2; }
+    else if(t.key==='5톤축'){ map[t.key] = p.truck5l_m2; }
+    else { map[t.key] = t.w / p.weight_per_m2; }
+  });
+  return map;
+}
+
+function renderTruckCheckboxes(idx, p){
+  const grid = document.getElementById('truckCheckGrid_'+idx);
+  if(!grid) return;
+  const capMap = wallCapacityByTier(p);
+  grid.innerHTML = TIERS.map(t=>{
+    const cap = capMap[t.key];
+    return `<label class="truck-check"><input type="checkbox" id="truckChk_${idx}_${t.key}" checked> ${t.key} <span class="muted">(~${fmt2(cap)}㎡/대)</span></label>`;
+  }).join('');
+}
+
+// 체크된 톤급 옵션들로 물량을 모두 커버하는 조합 중 총 운반비가 최소인 조합을 탐색한다.
+// (unbounded covering DP: 트럭 종류 무제한 반복 사용 가능, 마지막 트럭은 꽉 안 채워도 됨)
+function computeWallOptimal(qty, options){
+  const valid = options.filter(o=>o.cap>0 && o.rate>0);
+  if(valid.length===0) return null;
+  const STEP = 0.1; // ㎡ 단위 (성능/정밀도 균형)
+  const target = Math.max(1, Math.ceil(qty/STEP - 1e-9));
+  const capSteps = valid.map(o=>Math.max(1, Math.round(o.cap/STEP)));
+  const dp = new Array(target+1).fill(Infinity);
+  const choice = new Array(target+1).fill(-1);
+  dp[0] = 0;
+  for(let j=1;j<=target;j++){
+    for(let i=0;i<valid.length;i++){
+      const prev = Math.max(0, j - capSteps[i]);
+      if(dp[prev]===Infinity) continue;
+      const cost = dp[prev] + valid[i].rate;
+      if(cost < dp[j] - 1e-9){ dp[j] = cost; choice[j] = i; }
     }
   }
-  hintEl.innerHTML = msg;
+  if(dp[target]===Infinity) return null;
+  const counts = {};
+  valid.forEach(o=>counts[o.key]=0);
+  let j = target;
+  while(j>0){
+    const i = choice[j];
+    counts[valid[i].key]++;
+    j = Math.max(0, j - capSteps[i]);
+  }
+  const totalCapacity = valid.reduce((s,o)=> s + (counts[o.key]||0)*o.cap, 0);
+  return {counts, totalCostManwon: dp[target], totalCapacity, valid};
 }
 
 // ---------- site search ----------
@@ -414,17 +444,19 @@ function gatherLine(idx){
   const reguaOn = tab==='block' && document.getElementById('reguaToggle_'+idx).checked && p.regua_ok !== false;
   const bags = reguaOn ? (parseFloat(document.getElementById('reguaBags_'+idx).value)||0) : 0;
   const basePrice = parseFloat(document.getElementById('basePriceInput_'+idx).value) || 0;
-  let unitWeight, unitLabel, capacity, truckS = 0, truckL = 0;
+  let unitWeight, unitLabel, capacity, checkedTiers = [];
   if(tab==='block'){
     unitWeight = p.weight_per_m2; unitLabel = '㎡'; capacity = p.truck25_m2;
   } else if(tab==='wall'){
     unitWeight = p.weight_per_m2; unitLabel = '㎡'; capacity = null;
-    truckS = parseFloat(document.getElementById('truck5sInput_'+idx).value) || 0;
-    truckL = parseFloat(document.getElementById('truck5lInput_'+idx).value) || 0;
+    checkedTiers = TIERS.filter(t=>{
+      const el = document.getElementById('truckChk_'+idx+'_'+t.key);
+      return el && el.checked;
+    }).map(t=>t.key);
   } else {
     unitWeight = p.weight_per_ea; unitLabel = 'EA'; capacity = p.truck25_ea;
   }
-  return {idx, tab, p, qty, reguaOn, bags, basePrice, unitWeight, unitLabel, capacity, truckS, truckL};
+  return {idx, tab, p, qty, reguaOn, bags, basePrice, unitWeight, unitLabel, capacity, checkedTiers};
 }
 
 // ================= SINGLE-LINE ENGINE (precise per-product model) =================
@@ -527,68 +559,51 @@ function renderSingleLine(line, calc, rates, tierKey){
   return html;
 }
 
-// ================= WALL ENGINE (수동 배차) =================
-// 옹벽류(보강토옹벽·식생옹벽·식생호안)는 현장 진입로가 좁아 25톤을 못 쓰고
-// 5톤단축·장축 트럭을 쓰는 경우가 많다. 자동 최적화 대신, 담당자가 직접
-// 단축/장축 대수를 선택하면 그 배차 기준으로 운반비를 계산해서 보여준다.
-// (참고용으로 최저비용 조합도 함께 안내한다.)
-function findCheapestWallCombo(qty, capS, capL, rateS, rateL){
-  const maxNl = Math.ceil(qty / capL - 1e-9);
-  let best = null;
-  for(let nl=0; nl<=maxNl; nl++){
-    const remaining = qty - nl*capL;
-    const ns = remaining>1e-9 ? Math.ceil(remaining/capS - 1e-9) : 0;
-    const cost = nl*rateL*10000 + ns*rateS*10000;
-    const truckCount = nl+ns;
-    if(!best || cost < best.cost - 1e-6 || (Math.abs(cost-best.cost)<1e-6 && truckCount < best.nl+best.ns)){
-      best = {nl, ns, cost};
-    }
-  }
-  return best;
-}
-
+// ================= WALL ENGINE (체크한 차량 중 최적 조합 자동 계산) =================
+// 옹벽류(보강토옹벽·식생옹벽·식생호안)는 현장 진입로가 좁아 큰 트럭을 못 쓰는 경우가 많다.
+// 담당자가 "이 현장에 들어갈 수 있는 차량"만 체크하면, 그 안에서 총 운반비가
+// 가장 낮은 조합(대수 포함)을 자동으로 찾아 보여준다.
 function computeWallLine(line, rates){
-  const {p, qty, truckS, truckL} = line;
-  const capS = p.truck5s_m2, capL = p.truck5l_m2;
-  if(!capS || !capL){
-    return {error: '이 제품은 5톤단축/장축 적재량 데이터가 없어 계산이 불가능합니다.'};
+  const {p, qty, checkedTiers} = line;
+  if(!checkedTiers || checkedTiers.length===0){
+    return {error: '배차 가능한 차량을 1개 이상 체크해 주세요.'};
   }
-  if((truckS||0) + (truckL||0) <= 0){
-    return {error: '5톤단축 또는 5톤장축 대수를 1대 이상 입력해 주세요.'};
+  const capMap = wallCapacityByTier(p);
+  const options = checkedTiers.map(key=>({key, cap: capMap[key], rate: rates[key]}));
+  const usable = options.filter(o=>o.cap>0 && o.rate!==undefined && o.rate>0);
+  if(usable.length===0){
+    return {error: '체크한 차량 중 이 현장에 등록된 요율이 없습니다. 다른 차량을 체크해 주세요.'};
   }
-  const rateS = rates['5톤'] || 0;
-  const rateL = rates['5톤축'] || 0;
-  const capacity = truckS*capS + truckL*capL;
-  const cost = truckS*rateS*10000 + truckL*rateL*10000;
-  const diff = capacity - qty;
-  const cheapest = findCheapestWallCombo(qty, capS, capL, rateS, rateL);
-  return {p, qty, capS, capL, rateS, rateL, truckS, truckL, capacity, cost, diff, cheapest};
+  const solved = computeWallOptimal(qty, usable);
+  if(!solved){
+    return {error: '계산에 실패했습니다. 물량 또는 선택한 차량을 확인해 주세요.'};
+  }
+  return {p, qty, ...solved};
 }
 
 function renderWallLine(line, calc, rates){
-  const total = calc.cost;
+  const total = calc.totalCostManwon * 10000;
   const perUnit = total / calc.qty;
-  const shortfall = calc.diff < -1e-9;
+  const diff = calc.totalCapacity - calc.qty;
 
   let html = '';
   html += `<div class="row-between"><span class="lbl">입력 물량</span><span class="val">${fmt2(calc.qty)} ㎡</span></div>`;
   html += `<div class="row-between"><span class="lbl">현장</span><span class="val">${selectedSiteEntry.dong.replace(/\n/g,' ')} (${selectedSiteEntry.group})</span></div>`;
   html += `<hr class="divider">`;
-  html += `<div><span class="badge">선택한 배차</span></div>`;
+  html += `<div><span class="badge">체크한 차량 중 최적 배차</span></div>`;
   html += `<table><thead><tr><th>구간</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>`;
-  if(calc.truckL>0){
-    html += `<tr><td>5톤장축</td><td>${calc.truckL}대</td><td>${(calc.rateL*10000).toLocaleString()}원</td><td>${fmt(calc.truckL*calc.rateL*10000)}원</td></tr>`;
-  }
-  if(calc.truckS>0){
-    html += `<tr><td>5톤단축</td><td>${calc.truckS}대</td><td>${(calc.rateS*10000).toLocaleString()}원</td><td>${fmt(calc.truckS*calc.rateS*10000)}원</td></tr>`;
-  }
+  TIERS.forEach(t=>{
+    const n = calc.counts[t.key];
+    if(n>0){
+      const opt = calc.valid.find(o=>o.key===t.key);
+      html += `<tr><td>${t.key}</td><td>${n}대</td><td>${(opt.rate*10000).toLocaleString()}원</td><td>${fmt(n*opt.rate*10000)}원</td></tr>`;
+    }
+  });
   html += `</tbody></table>`;
 
-  html += `<div class="row-between"><span class="lbl">선택 배차 적재 가능량</span><span class="val">${fmt2(calc.capacity)} ㎡</span></div>`;
-  if(shortfall){
-    html += `<div class="note-box" style="background:#fef2f2;border-color:#fecaca;color:var(--red);">⚠ 선택한 배차로는 물량이 부족합니다. ${fmt2(-calc.diff)}㎡ 만큼 트럭을 더 추가해 주세요.</div>`;
-  } else if(calc.diff > 1e-9){
-    html += `<div class="hint">여유 ${fmt2(calc.diff)}㎡</div>`;
+  html += `<div class="row-between"><span class="lbl">적재 가능량</span><span class="val">${fmt2(calc.totalCapacity)} ㎡</span></div>`;
+  if(diff > 1e-9){
+    html += `<div class="hint">여유 ${fmt2(diff)}㎡</div>`;
   }
 
   html += `<hr class="divider">`;
@@ -603,15 +618,7 @@ function renderWallLine(line, calc, rates){
     </div>`;
   }
 
-  const c = calc.cheapest;
-  if(c && !(c.nl===calc.truckL && c.ns===calc.truckS)){
-    const parts = [];
-    if(c.nl>0) parts.push(`5톤장축 ${c.nl}대`);
-    if(c.ns>0) parts.push(`5톤단축 ${c.ns}대`);
-    html += `<div class="hint" style="margin-top:10px;">참고: 물량을 다 싣는 최저비용 조합은 ${parts.join(' + ')} (${fmt(c.cost)}원)입니다.</div>`;
-  }
-
-  html += `<div class="note-box">옹벽류는 현장 진입로가 좁아 25톤 대신 5톤단축/장축 트럭 배차 기준으로 계산합니다. 위 배차는 직접 선택한 값이며, 실제 현장 접근 가능 여부는 담당자 확인을 권장합니다.</div>`;
+  html += `<div class="note-box">체크한 차량 중에서 총 운반비가 가장 낮은 조합을 계산했습니다. 5톤/5톤축(5톤단축·장축)은 현장에서 확인된 정확한 적재량 기준이고, 나머지 톤급(1톤~3.5톤, 14톤, 18톤, 25톤)은 해당 톤급의 명목 적재중량을 제품 단위무게로 나눈 추정치입니다. 현장 접근 가능 차량인지는 담당자 확인을 권장합니다.</div>`;
 
   return html;
 }
